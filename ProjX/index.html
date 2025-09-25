@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Water Quality Monitoring Dashboard</title>
+  <style>
+    /* Reset & Fonts */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Background Styling */
+    body {
+      background: url('waterbackground.jpg') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Main container */
+    .container {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      max-width: 450px;
+      width: 100%;
+      text-align: center;
+      backdrop-filter: blur(5px);
+    }
+
+    h1 {
+      color: #0077b6;
+      margin-bottom: 20px;
+    }
+
+    /* Cards for sensor data */
+    .card {
+      background: #f1f1f1;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      font-size: 1.4rem;
+      color: #00796b;
+    }
+
+    .status {
+      font-size: 1rem;
+      color: #555;
+      margin-top: 10px;
+    }
+
+    .footer {
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    /* Admin Panel Styling */
+    .hidden {
+      display: none;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .btn {
+      background: #0077b6;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      background: #005f8e;
+    }
+
+    .logout-btn {
+      background: #d9534f;
+      margin-top: 15px;
+    }
+
+    .logout-btn:hover {
+      background: #b52b27;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Dashboard Page (Visible to all) -->
+    <div id="dashboardPage">
+      <h1>Water Quality Monitoring</h1>
+
+      <div class="card">
+        <h2 id="ph">--</h2>
+        <p>pH Level</p>
+      </div>
+
+      <div class="card">
+        <h2 id="turbidity">--</h2>
+        <p>Turbidity (NTU)</p>
+      </div>
+
+      <div class="card">
+        <h2 id="tds">--</h2>
+        <p>Total Dissolved Solids (ppm)</p>
+      </div>
+
+      <div class="card">
+        <h2 id="endotoxin">--</h2>
+        <p>Endotoxin (EU/mL)</p>
+      </div>
+
+      <div class="status" id="status">Connecting to ESP32...</div>
+
+      <!-- Admin Login Button -->
+      <button class="btn" id="adminLoginBtn" onclick="showLogin()">Admin Login</button>
+    </div>
+
+    <!-- Admin Panel Login + Wi-Fi Dashboard -->
+    <div id="adminPage" class="hidden">
+      <h1>Admin Panel</h1>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter username">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter password">
+      </div>
+      <button class="btn" onclick="login()">Login</button>
+      <button class="logout-btn" onclick="backToDashboard()">Back to Dashboard</button>
+      <div id="loginStatus" class="status"></div>
+
+      <!-- Wi-Fi Configuration inside Admin Panel -->
+      <div id="wifiSettings" class="hidden">
+        <h2>Wi-Fi Configuration</h2>
+        <div class="form-group">
+          <label for="ssid">SSID</label>
+          <input type="text" id="ssid" placeholder="Enter new Wi-Fi SSID">
+        </div>
+        <div class="form-group">
+          <label for="wifiPassword">Password</label>
+          <input type="password" id="wifiPassword" placeholder="Enter new Wi-Fi password">
+        </div>
+        <button class="btn" onclick="updateWifi()">Update Wi-Fi</button>
+        <button class="logout-btn" onclick="hideWifiSettings()">Back to Admin Panel</button>
+        <div id="wifiStatus" class="status"></div>
+      </div>
+    </div>
+
+    <div class="footer">ESP32 Water Quality Dashboard</div>
+  </div>
+
+  <script>
+    const esp32Url = "http://192.168.4.1/data";  // ESP32 Data Endpoint
+    const esp32ConfigUrl = "http://192.168.4.1/config";  // ESP32 Config Endpoint
+
+    const adminUsername = "admin";
+    const adminPassword = "1234";
+
+    let wifiBtnAdded = false;
+
+    // Show Admin Page
+    function showLogin() {
+      document.getElementById("dashboardPage").classList.add("hidden");
+      document.getElementById("adminPage").classList.remove("hidden");
+    }
+
+    function backToDashboard() {
+      document.getElementById("dashboardPage").classList.remove("hidden");
+      document.getElementById("adminPage").classList.add("hidden");
+      document.getElementById("loginStatus").textContent = "";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      hideWifiSettings();
+    }
+
+    // Login function
+    function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const status = document.getElementById("loginStatus");
+
+      if (username === adminUsername && password === adminPassword) {
+        status.textContent = "Login Successful!";
+        document.getElementById("wifiSettings").classList.remove("hidden");
+      } else {
+        status.textContent = "Invalid username or password!";
+      }
+    }
+
+    function hideWifiSettings() {
+      document.getElementById("wifiSettings").classList.add("hidden");
+      document.getElementById("ssid").value = "";
+      document.getElementById("wifiPassword").value = "";
+      document.getElementById("wifiStatus").textContent = "";
+    }
+
+    async function updateWifi() {
+      const ssid = document.getElementById("ssid").value;
+      const wifiPassword = document.getElementById("wifiPassword").value;
+      const wifiStatus = document.getElementById("wifiStatus");
+
+      if (!ssid || !wifiPassword) {
+        wifiStatus.textContent = "SSID and Password cannot be empty!";
+        return;
+      }
+
+      try {
+        const response = await fetch(esp32ConfigUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ssid, password: wifiPassword })
+        });
+
+        if (!response.ok) throw new Error("Failed to update Wi-Fi settings");
+        const result = await response.json();
+        wifiStatus.textContent = `Wi-Fi updated successfully! Reconnect to ${result.ssid}`;
+      } catch (error) {
+        wifiStatus.textContent = "Error updating Wi-Fi!";
+        console.error("Wi-Fi update error:", error);
+      }
+    }
+
+    // Fetch ESP32 Data
+    async function fetchData() {
+      try {
+        const response = await fetch(esp32Url);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+
+        document.getElementById("ph").textContent = `${data.ph}`;
+        document.getElementById("turbidity").textContent = `${data.turbidity}`;
+        document.getElementById("tds").textContent = `${data.tds}`;
+        document.getElementById("endotoxin").textContent = `${data.endotoxin}`;
+        document.getElementById("status").textContent = `Status: ${data.status}`;
+      } catch (error) {
+        document.getElementById("status").textContent = "Error fetching data!";
+        console.error("Fetch error:", error);
+      }
+    }
+
+    setInterval(fetchData, 2000);
+  </script>
+</body>
+</html>
