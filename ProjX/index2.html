@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Water Quality Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('waterbackground2.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Overlay to make text readable over background */
+    .overlay {
+      background: rgba(255, 255, 255, 0.85);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    header {
+      background: rgba(0, 119, 182, 0.9);
+      color: white;
+      text-align: center;
+      padding: 20px 10px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      border-radius: 8px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .card h2 {
+      margin-bottom: 10px;
+      color: #0077b6;
+    }
+
+    .status {
+      font-size: 1.2rem;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .good {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .bad {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .parameter {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+    }
+
+    .parameter h3 {
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+      color: #0077b6;
+    }
+
+    .parameter p {
+      font-size: 1.3rem;
+      font-weight: bold;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 10px;
+      background: rgba(241, 241, 241, 0.9);
+      margin-top: 20px;
+      color: #777;
+      border-radius: 8px;
+    }
+
+    /* Admin Panel Styling */
+    .hidden {
+      display: none;
+    }
+
+    .admin-card {
+      max-width: 400px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .btn {
+      background: #0077b6;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      background: #005f8e;
+    }
+
+    .logout-btn {
+      background: #d9534f;
+      margin-top: 15px;
+    }
+
+    .logout-btn:hover {
+      background: #b52b27;
+    }
+
+    #loginStatus {
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <header>💧 Water Quality Monitoring Dashboard</header>
+
+    <!-- Main Dashboard -->
+    <div id="dashboardPage" class="container">
+      <div class="card">
+        <h2>Water Quality Status</h2>
+        <div id="statusText" class="status">Loading...</div>
+        <div id="errorMessage" class="error"></div>
+      </div>
+
+      <!-- Sensor Values -->
+      <div class="grid">
+        <div class="parameter">
+          <h3>pH Level</h3>
+          <p id="phValue">--</p>
+        </div>
+        <div class="parameter">
+          <h3>Turbidity (NTU)</h3>
+          <p id="turbidityValue">--</p>
+        </div>
+        <div class="parameter">
+          <h3>TDS (ppm)</h3>
+          <p id="tdsValue">--</p>
+        </div>
+        <div class="parameter">
+          <h3>Endotoxin (mg/L)</h3>
+          <p id="endotoxinValue">--</p>
+        </div>
+      </div>
+
+      <!-- Admin Login Button -->
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="btn" onclick="showAdminLogin()">Admin Login</button>
+      </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPage" class="hidden">
+      <div class="admin-card">
+        <h2>Admin Login</h2>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="Enter username">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter password">
+        </div>
+        <button class="btn" onclick="login()">Login</button>
+        <button class="logout-btn" onclick="backToDashboard()">Back to Dashboard</button>
+        <div id="loginStatus"></div>
+      </div>
+    </div>
+
+    <footer>
+      &copy; 2025 Smart Water Monitoring System
+    </footer>
+  </div>
+
+  <script>
+    const esp32Url = "http://192.168.43.120/data";
+
+    // Admin credentials
+    const adminUsername = "admin";
+    const adminPassword = "1234";
+
+    function showAdminLogin() {
+      document.getElementById("dashboardPage").classList.add("hidden");
+      document.getElementById("adminPage").classList.remove("hidden");
+    }
+
+    function backToDashboard() {
+      document.getElementById("dashboardPage").classList.remove("hidden");
+      document.getElementById("adminPage").classList.add("hidden");
+      document.getElementById("loginStatus").textContent = "";
+    }
+
+    function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const loginStatus = document.getElementById("loginStatus");
+
+      if (username === adminUsername && password === adminPassword) {
+        loginStatus.textContent = "Login successful!";
+        loginStatus.style.color = "green";
+        // Future: Add more admin features here
+      } else {
+        loginStatus.textContent = "Invalid username or password!";
+        loginStatus.style.color = "red";
+      }
+    }
+
+    async function fetchData() {
+      try {
+        const response = await fetch(esp32Url);
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+
+        // Update DOM with fetched values
+        document.getElementById("phValue").textContent = data.ph.toFixed(2);
+        document.getElementById("turbidityValue").textContent = data.turbidity.toFixed(2);
+        document.getElementById("tdsValue").textContent = data.tds.toFixed(0);
+        document.getElementById("endotoxinValue").textContent = data.endotoxin.toFixed(2);
+
+        // Update water quality status
+        const statusText = document.getElementById("statusText");
+        if (data.status === "Water is drinkable") {
+          statusText.textContent = "✅ Safe to Drink";
+          statusText.className = "status good";
+        } else {
+          statusText.textContent = "⚠️ Not Safe to Drink";
+          statusText.className = "status bad";
+        }
+
+        document.getElementById("errorMessage").textContent = "";
+
+      } catch (error) {
+        console.error("Fetch error:", error);
+        document.getElementById("errorMessage").textContent =
+          "Error fetching data. Check ESP32 connection or IP address.";
+      }
+    }
+
+    // Fetch every 2 seconds
+    setInterval(fetchData, 2000);
+
+    // Initial load
+    fetchData();
+  </script>
+</body>
+</html>
