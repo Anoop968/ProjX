@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-const char* ssid = "RedmiA3";        // Replace with your hotspot name
-const char* password = "Anoop@689102"; // Replace with your hotspot password
+const char* ssid = "";        // Replace with your hotspot name
+const char* password = ""; // Replace with your hotspot password
 // === Thresholds for Safe Drinking Water ===
 #define PH_MIN 6.5
 #define PH_MAX 8.5
