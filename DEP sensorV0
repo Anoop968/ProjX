@@ -1,0 +1,29 @@
+#define voltpin A0
+#define chargepin 9// D0
+#define dischargepin 5 // D1
+float Resistance=10000.0,cap; 
+unsigned long t0,t1,total_time;
+void setup() {
+  Serial.begin(9600);
+  pinMode(chargepin,OUTPUT);
+  pinMode(dischargepin,OUTPUT);
+  //pinMode(voltpin,INPUT);
+  digitalWrite(chargepin,LOW);
+  digitalWrite(dischargepin,LOW);
+}
+void loop() {
+ digitalWrite(dischargepin,LOW);
+ delay(1000);
+ digitalWrite(chargepin,HIGH);
+ t0=micros();
+ while(analogRead(A0)<=648){}
+ digitalWrite(chargepin,LOW);
+ t1=micros();
+ total_time=t1-t0;
+ cap=(float)total_time/Resistance;
+ Serial.print("capacitance:");
+ Serial.print(total_time);
+ Serial.print("uf");
+ Serial.println();
+ delay(500);
+}
