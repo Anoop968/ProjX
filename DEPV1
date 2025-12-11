@@ -1,0 +1,58 @@
+#define analogPin      0          
+#define chargePin      13         
+#define dischargePin   8        
+#define resistorValue  10000.0F  // 10K resistor
+
+unsigned long startTime;
+unsigned long elapsedTime;
+float microFarads;                
+float nanoFarads;
+
+void setup() {
+  pinMode(chargePin, OUTPUT);     
+  digitalWrite(chargePin, LOW); 
+
+  Serial.begin(9600);
+}
+
+void loop() {
+
+  digitalWrite(chargePin, HIGH);  
+  startTime = micros();
+
+  // Charge until ADC reaches 63% of 5V = ADC 648
+  while (analogRead(analogPin) < 648) {
+  }
+
+  elapsedTime = micros() - startTime;
+  microFarads = ((float)elapsedTime / resistorValue);
+
+  // Print results
+  if (microFarads > 1) {
+    Serial.print("Capacitance: ");
+    Serial.print(microFarads);
+    Serial.println(" uF");
+  } 
+  else {
+    nanoFarads = microFarads * 1000.0;
+    Serial.print("Capacitance: ");
+    Serial.print(nanoFarads);
+    Serial.println(" nF");
+  }
+
+  // Stop charging
+  digitalWrite(chargePin, LOW);
+
+  // Discharge capacitor
+  pinMode(dischargePin, OUTPUT);
+  digitalWrite(dischargePin, LOW);
+
+  while (analogRead(analogPin) > 0) {
+  }
+
+  // High impedance
+  pinMode(dischargePin, INPUT);
+
+  Serial.println("Discharging...");
+  delay(300);
+}
